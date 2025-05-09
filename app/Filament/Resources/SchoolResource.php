@@ -27,8 +27,7 @@ class SchoolResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Textarea::make('address')
-                    ->required()
-                    ->columnSpanFull(),
+                    ->required(),
                 Forms\Components\TextInput::make('contact_person')
                     ->maxLength(255)
                     ->default(null),
@@ -39,10 +38,11 @@ class SchoolResource extends Resource
                 Forms\Components\TextInput::make('student_count')
                     ->required()
                     ->numeric(),
+                Forms\Components\Toggle::make('is_active')
+                    ->required()
+                    ->default(true),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
-                Forms\Components\Toggle::make('is_active')
-                    ->required(),
             ]);
     }
 
@@ -76,7 +76,7 @@ class SchoolResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-   Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make(),
 
             ])
             ->bulkActions([
