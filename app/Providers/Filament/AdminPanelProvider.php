@@ -28,7 +28,6 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
 use Rupadana\ApiService\ApiServicePlugin;
-
 use Laravel\Socialite\Contracts\User as SocialiteUserContract;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Schema;
@@ -121,29 +120,30 @@ class AdminPanelProvider extends PanelProvider
                 ->enableTwoFactorAuthentication(),
         ];
 
-        if ($this->settings->sso_enabled ?? true) {
-            $plugins[] =
-                FilamentSocialitePlugin::make()
-                ->providers([
-                    Provider::make('google')
-                        ->label('Google')
-                        ->icon('fab-google')
-                        ->color(Color::hex('#2f2a6b'))
-                        ->outlined(true)
-                        ->stateless(false)
-                ])->registration(true)
-                ->createUserUsing(function (string $provider, SocialiteUserContract $oauthUser, FilamentSocialitePlugin $plugin) {
-                    $user = User::firstOrNew([
-                        'email' => $oauthUser->getEmail(),
-                    ]);
-                    $user->name = $oauthUser->getName();
-                    $user->email = $oauthUser->getEmail();
-                    $user->email_verified_at = now();
-                    $user->save();
+        // if ($this->settings->sso_enabled ?? true) {
+        //     $plugins[] =
+        //         FilamentSocialitePlugin::make()
+        //         ->providers([
+        //             Provider::make('google')
+        //                 ->label('Google')
+        //                 ->icon('fab-google')
+        //                 ->color(Color::hex('#2f2a6b'))
+        //                 ->outlined(true)
+        //                 ->stateless(false)
+        //         ])
+        //         ->registration(true)
+        //         ->createUserUsing(function (string $provider, SocialiteUserContract $oauthUser, FilamentSocialitePlugin $plugin) {
+        //             $user = User::firstOrNew([
+        //                 'email' => $oauthUser->getEmail(),
+        //             ]);
+        //             $user->name = $oauthUser->getName();
+        //             $user->email = $oauthUser->getEmail();
+        //             $user->email_verified_at = now();
+        //             $user->save();
 
-                    return $user;
-                });
-        }
+        //             return $user;
+        //         });
+        // }
         return $plugins;
     }
 }
