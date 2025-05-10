@@ -1,0 +1,1110 @@
+<?php
+// File: app/Models/User.php
+namespace App\Models;
+
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
+
+class User extends Authenticatable implements FilamentUser
+{
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'phone',
+        'position',
+        'is_active',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_active' => 'boolean',
+    ];
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->is_active;
+    }
+
+    public function stockRequests()
+    {
+        return $this->hasMany(StockRequest::class, 'requested_by');
+    }
+
+    public function approvedStockRequests()
+    {
+        return $this->hasMany(StockRequest::class, 'approved_by');
+    }
+
+    public function purchaseRequests()
+    {
+        return $this->hasMany(PurchaseRequest::class, 'requested_by');
+    }
+
+    public function approvedPurchaseRequests()
+    {
+        return $this->hasMany(PurchaseRequest::class, 'approved_by');
+    }
+
+    public function distributions()
+    {
+        return $this->hasMany(Distribution::class, 'created_by');
+    }
+
+    public function deliveries()
+    {
+        return $this->hasMany(DistributionDetail::class, 'driver_id');
+    }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    public function nutritionPlans()
+    {
+        return $this->hasMany(NutritionPlan::class, 'created_by');
+    }
+
+    public function dailyMenus()
+    {
+        return $this->hasMany(DailyMenu::class, 'created_by');
+    }
+
+    public function approvedDailyMenus()
+    {
+        return $this->hasMany(DailyMenu::class, 'approved_by');
+    }
+}
+
+// File: app/Models/Category.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Category extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'description',
+    ];
+
+    public function inventoryItems()
+    {
+        return $this->hasMany(InventoryItem::class);
+    }
+}
+
+// File: app/Models/Unit.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Unit extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'symbol',
+    ];
+
+    public function inventoryItems()
+    {
+        return $this->hasMany(InventoryItem::class);
+    }
+
+    public function menuItemIngredients()
+    {
+        return $this->hasMany(MenuItemIngredient::class);
+    }
+
+    public function purchaseRequestItems()
+    {
+        return $this->hasMany(PurchaseRequestItem::class);
+    }
+
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function stockRequestItems()
+    {
+        return $this->hasMany(StockRequestItem::class);
+    }
+}
+
+// File: app/Models/InventoryItem.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class InventoryItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'category_id',
+        'unit_id',
+        'stock_quantity',
+        'min_stock_level',
+        'description',
+    ];
+
+    protected $casts = [
+        'stock_quantity' => 'decimal:2',
+        'min_stock_level' => 'decimal:2',
+    ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function menuItemIngredients()
+    {
+        return $this->hasMany(MenuItemIngredient::class);
+    }
+
+    public function purchaseRequestItems()
+    {
+        return $this->hasMany(PurchaseRequestItem::class);
+    }
+
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function stockRequestItems()
+    {
+        return $this->hasMany(StockRequestItem::class);
+    }
+
+    public function stockAdjustments()
+    {
+        return $this->hasMany(StockAdjustment::class);
+    }
+}
+
+// File: app/Models/KitchenEquipment.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class KitchenEquipment extends Model
+{
+    use HasFactory;
+
+    protected $table = 'kitchen_equipment';
+
+    protected $fillable = [
+        'name',
+        'equipment_type',
+        'total_quantity',
+        'available_quantity',
+        'in_use_quantity',
+        'damaged_quantity',
+        'min_quantity',
+        'status',
+        'description',
+    ];
+
+    public function distributionDetails()
+    {
+        return $this->hasMany(DistributionDetail::class, 'equipment_id');
+    }
+
+    public function equipmentReturns()
+    {
+        return $this->hasMany(EquipmentReturn::class, 'equipment_id');
+    }
+}
+
+// File: app/Models/Supplier.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Supplier extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'contact_person',
+        'phone',
+        'email',
+        'address',
+        'notes',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    public function purchaseOrders()
+    {
+        return $this->hasMany(PurchaseOrder::class);
+    }
+}
+
+// File: app/Models/School.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class School extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'address',
+        'contact_person',
+        'phone',
+        'student_count',
+        'notes',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    public function distributionDetails()
+    {
+        return $this->hasMany(DistributionDetail::class);
+    }
+}
+
+// File: app/Models/NutritionPlan.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class NutritionPlan extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'month_year',
+        'calories',
+        'protein',
+        'carbs',
+        'fat',
+        'notes',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'month_year' => 'date',
+        'calories' => 'decimal:2',
+        'protein' => 'decimal:2',
+        'carbs' => 'decimal:2',
+        'fat' => 'decimal:2',
+    ];
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function dailyMenus()
+    {
+        return $this->hasMany(DailyMenu::class);
+    }
+}
+
+// File: app/Models/DailyMenu.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class DailyMenu extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'menu_date',
+        'nutrition_plan_id',
+        'description',
+        'calories',
+        'protein',
+        'carbs',
+        'fat',
+        'status',
+        'created_by',
+        'approved_by',
+    ];
+
+    protected $casts = [
+        'menu_date' => 'date',
+        'calories' => 'decimal:2',
+        'protein' => 'decimal:2',
+        'carbs' => 'decimal:2',
+        'fat' => 'decimal:2',
+    ];
+
+    public function nutritionPlan()
+    {
+        return $this->belongsTo(NutritionPlan::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function menuItems()
+    {
+        return $this->hasMany(MenuItem::class);
+    }
+
+    public function stockRequests()
+    {
+        return $this->hasMany(StockRequest::class);
+    }
+
+    public function distributions()
+    {
+        return $this->hasMany(Distribution::class);
+    }
+}
+
+// File: app/Models/MenuItem.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class MenuItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'daily_menu_id',
+        'name',
+        'description',
+        'calories',
+        'protein',
+        'carbs',
+        'fat',
+    ];
+
+    protected $casts = [
+        'calories' => 'decimal:2',
+        'protein' => 'decimal:2',
+        'carbs' => 'decimal:2',
+        'fat' => 'decimal:2',
+    ];
+
+    public function dailyMenu()
+    {
+        return $this->belongsTo(DailyMenu::class);
+    }
+
+    public function ingredients()
+    {
+        return $this->hasMany(MenuItemIngredient::class);
+    }
+}
+
+// File: app/Models/MenuItemIngredient.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class MenuItemIngredient extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'menu_item_id',
+        'inventory_item_id',
+        'quantity',
+        'unit_id',
+    ];
+
+    protected $casts = [
+        'quantity' => 'decimal:2',
+    ];
+
+    public function menuItem()
+    {
+        return $this->belongsTo(MenuItem::class);
+    }
+
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+}
+
+// File: app/Models/PurchaseRequest.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class PurchaseRequest extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'request_number',
+        'request_date',
+        'status',
+        'requested_by',
+        'approved_by',
+        'approved_at',
+        'rejection_reason',
+        'notes',
+    ];
+
+    protected $casts = [
+        'request_date' => 'date',
+        'approved_at' => 'datetime',
+    ];
+
+    public function requestedBy()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(PurchaseRequestItem::class);
+    }
+
+    public function purchaseOrders()
+    {
+        return $this->hasMany(PurchaseOrder::class);
+    }
+}
+
+// File: app/Models/PurchaseRequestItem.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class PurchaseRequestItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'purchase_request_id',
+        'inventory_item_id',
+        'quantity',
+        'unit_id',
+        'notes',
+    ];
+
+    protected $casts = [
+        'quantity' => 'decimal:2',
+    ];
+
+    public function purchaseRequest()
+    {
+        return $this->belongsTo(PurchaseRequest::class);
+    }
+
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+}
+
+// File: app/Models/PurchaseOrder.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class PurchaseOrder extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'order_number',
+        'purchase_request_id',
+        'supplier_id',
+        'order_date',
+        'expected_delivery_date',
+        'status',
+        'total_amount',
+        'notes',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'order_date' => 'date',
+        'expected_delivery_date' => 'date',
+        'total_amount' => 'decimal:2',
+    ];
+
+    public function purchaseRequest()
+    {
+        return $this->belongsTo(PurchaseRequest::class);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function goodsReceipts()
+    {
+        return $this->hasMany(GoodsReceipt::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+}
+
+// File: app/Models/PurchaseOrderItem.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class PurchaseOrderItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'purchase_order_id',
+        'inventory_item_id',
+        'quantity',
+        'unit_id',
+        'unit_price',
+        'total_price',
+    ];
+
+    protected $casts = [
+        'quantity' => 'decimal:2',
+        'unit_price' => 'decimal:2',
+        'total_price' => 'decimal:2',
+    ];
+
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function goodsReceiptItems()
+    {
+        return $this->hasMany(GoodsReceiptItem::class);
+    }
+}
+
+// File: app/Models/GoodsReceipt.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class GoodsReceipt extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'receipt_number',
+        'purchase_order_id',
+        'receipt_date',
+        'status',
+        'notes',
+        'received_by',
+    ];
+
+    protected $casts = [
+        'receipt_date' => 'date',
+    ];
+
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function receivedBy()
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(GoodsReceiptItem::class);
+    }
+}
+
+// File: app/Models/GoodsReceiptItem.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class GoodsReceiptItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'goods_receipt_id',
+        'purchase_order_item_id',
+        'received_quantity',
+        'rejected_quantity',
+        'rejection_reason',
+    ];
+
+    protected $casts = [
+        'received_quantity' => 'decimal:2',
+        'rejected_quantity' => 'decimal:2',
+    ];
+
+    public function goodsReceipt()
+    {
+        return $this->belongsTo(GoodsReceipt::class);
+    }
+
+    public function purchaseOrderItem()
+    {
+        return $this->belongsTo(PurchaseOrderItem::class);
+    }
+}
+
+// File: app/Models/StockRequest.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class StockRequest extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'request_number',
+        'daily_menu_id',
+        'request_date',
+        'status',
+        'notes',
+        'requested_by',
+        'approved_by',
+        'approved_at',
+    ];
+
+    protected $casts = [
+        'request_date' => 'date',
+        'approved_at' => 'datetime',
+    ];
+
+    public function dailyMenu()
+    {
+        return $this->belongsTo(DailyMenu::class);
+    }
+
+    public function requestedBy()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(StockRequestItem::class);
+    }
+}
+
+// File: app/Models/StockRequestItem.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class StockRequestItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'stock_request_id',
+        'inventory_item_id',
+        'requested_quantity',
+        'fulfilled_quantity',
+        'unit_id',
+    ];
+
+    protected $casts = [
+        'requested_quantity' => 'decimal:2',
+        'fulfilled_quantity' => 'decimal:2',
+    ];
+
+    public function stockRequest()
+    {
+        return $this->belongsTo(StockRequest::class);
+    }
+
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+}
+
+// File: app/Models/Distribution.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Distribution extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'distribution_number',
+        'daily_menu_id',
+        'distribution_date',
+        'status',
+        'notes',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'distribution_date' => 'date',
+    ];
+
+    public function dailyMenu()
+    {
+        return $this->belongsTo(DailyMenu::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function details()
+    {
+        return $this->hasMany(DistributionDetail::class);
+    }
+}
+
+// File: app/Models/DistributionDetail.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class DistributionDetail extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'distribution_id',
+        'school_id',
+        'meal_count',
+        'food_tray_count',
+        'equipment_id',
+        'status',
+        'driver_id',
+        'departure_time',
+        'arrival_time',
+        'notes',
+    ];
+
+    protected $casts = [
+        'departure_time' => 'datetime',
+        'arrival_time' => 'datetime',
+    ];
+
+    public function distribution()
+    {
+        return $this->belongsTo(Distribution::class);
+    }
+
+    public function school()
+    {
+        return $this->belongsTo(School::class);
+    }
+
+    public function equipment()
+    {
+        return $this->belongsTo(KitchenEquipment::class, 'equipment_id');
+    }
+
+    public function driver()
+    {
+        return $this->belongsTo(User::class, 'driver_id');
+    }
+
+    public function equipmentReturns()
+    {
+        return $this->hasMany(EquipmentReturn::class);
+    }
+}
+
+// File: app/Models/EquipmentReturn.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class EquipmentReturn extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'distribution_detail_id',
+        'equipment_id',
+        'return_date',
+        'returned_quantity',
+        'damaged_quantity',
+        'missing_quantity',
+        'notes',
+        'received_by',
+    ];
+
+    protected $casts = [
+        'return_date' => 'date',
+    ];
+
+    public function distributionDetail()
+    {
+        return $this->belongsTo(DistributionDetail::class);
+    }
+
+    public function equipment()
+    {
+        return $this->belongsTo(KitchenEquipment::class, 'equipment_id');
+    }
+
+    public function receivedBy()
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+}
+
+// File: app/Models/Payment.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Payment extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'payment_number',
+        'purchase_order_id',
+        'payment_date',
+        'amount',
+        'payment_method',
+        'reference_number',
+        'notes',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'payment_date' => 'date',
+        'amount' => 'decimal:2',
+    ];
+
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+}
+
+// File: app/Models/StockAdjustment.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class StockAdjustment extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'adjustment_number',
+        'adjustment_date',
+        'adjustment_type',
+        'inventory_item_id',
+        'quantity',
+        'unit_id',
+        'reason',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'adjustment_date' => 'date',
+        'quantity' => 'decimal:2',
+    ];
+
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+}
+
+// File: app/Models/ActivityLog.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class ActivityLog extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'activity_type',
+        'description',
+        'loggable_id',
+        'loggable_type',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function loggable()
+    {
+        return $this->morphTo();
+    }
+}
+
+// File: app/Models/Notification.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Notification extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'title',
+        'message',
+        'read_at',
+        'notifiable_id',
+        'notifiable_type',
+    ];
+
+    protected $casts = [
+        'read_at' => 'datetime',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function notifiable()
+    {
+        return $this->morphTo();
+    }
+}

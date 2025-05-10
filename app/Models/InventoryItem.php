@@ -24,13 +24,43 @@ class InventoryItem extends Model
     // add hidden
     protected $hidden = ['created_at', 'updated_at'];
 
-    public function category():BelongsTo
+    protected $casts = [
+        'stock_quantity' => 'decimal:2',
+        'min_stock_level' => 'decimal:2',
+    ];
+
+    public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function unit():BelongsTo
+    public function unit()
     {
         return $this->belongsTo(Unit::class);
     }
+
+    public function menuItemIngredients()
+    {
+        return $this->hasMany(MenuItemIngredient::class);
+    }
+
+    public function purchaseRequestItems()
+    {
+        return $this->hasMany(PurchaseRequestItem::class);
+    }
+
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    // public function stockRequestItems()
+    // {
+    //     return $this->hasMany(StockRequestItem::class);
+    // }
+
+    // public function stockAdjustments()
+    // {
+    //     return $this->hasMany(StockAdjustment::class);
+    // }
 }

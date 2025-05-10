@@ -19,6 +19,8 @@ class KitchenEquipmentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationGroup = 'Manage Warehouse';
+
     public static function form(Form $form): Form
     {
         return $form
